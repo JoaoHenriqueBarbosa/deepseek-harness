@@ -13,7 +13,6 @@ import {
 } from './connection.ts'
 import { createFixtureConnectionRpc } from './fixture.ts'
 import { createWebConnectionRpc, type RpcFetch, type RpcStreamOpen } from './rpc.ts'
-import { isLoopbackHostname } from '../loopback-hostname.ts'
 import type { ClientConnectionRpc } from '../rpc.ts'
 
 declare module '@deepseek-ai/cordis' {
@@ -113,9 +112,9 @@ interface ClientTransportGlobal {
  */
 export interface ConnectionHandle {
   /**
-   * Whether the privileged surface is reachable: the page authority is
-   * loopback, the transport declares the page owns the Host
-   * ({@link ClientTransportHooks.ownsHost}), or the context is not a browser.
+   * Whether the privileged surface is reachable. This deployment answers it for
+   * every authority it serves, not for loopback alone, because the Host/Origin
+   * fence and BrowserAuth already decide who reaches the page.
    */
   readonly isLoopback: boolean
   /** Current Remote event generation and the Host facts carried by its opening frame. */
@@ -225,7 +224,12 @@ export function apply(ctx: Context): void {
     publishState(undefined)
   }
   const handle: ConnectionHandle = {
-    isLoopback: transport?.ownsHost === true || pageLocation === undefined || isLoopbackHostname(pageLocation.hostname),
+    // This deployment serves a LAN authority and wants the privileged surface
+    // (Settings, credentials) there, so the flag does not read the page
+    // hostname. Reachability is decided upstream of it: the Host/Origin fence
+    // refuses an untrusted authority and BrowserAuth refuses an
+    // unauthenticated one.
+    isLoopback: true,
     generation: {
       getSnapshot: () => generation,
       subscribe: (listener) => {
