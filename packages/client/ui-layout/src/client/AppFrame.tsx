@@ -15,7 +15,7 @@ import type { ReactNode } from 'react'
 import type {
   PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
-import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.ts'
+import { computeColumns, MOBILE_HEADER, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.ts'
 import { DocumentTitle } from './DocumentTitle.tsx'
 import type { createLayoutStore } from './stores.ts'
 import css from './AppFrame.module.css'
@@ -143,13 +143,20 @@ export function AppFrame({
   // solver stays breakpoint-free: a narrow re-expand passes the preference
   // (or the default when the wide preference is closed) and the center
   // absorbs the squeeze.
+  //
+  // One breakpoint further down the sidebar stops being a column at all: the
+  // rail's 56px is width the conversation and its composer need more, so the
+  // sidebar renders its own header and moves into the overlay layer as a
+  // transient panel. The frame contributes the zero track and the placement.
+  const mobile = viewport < MOBILE_HEADER
   const narrow = viewport < SIDEBAR_AUTO_COLLAPSE
   useEffect(() => { actions.setNarrow(narrow) }, [actions, narrow])
+  useEffect(() => { actions.setMobile(mobile) }, [actions, mobile])
   const sidebarCollapsed = narrow ? !panels.narrowExpanded : panels.sidebar === 0
   const sidebarPreference = sidebarCollapsed
     ? 0
     : panels.sidebar === 0 ? SIDEBAR_DEFAULT : panels.sidebar
-  const cols = computeColumns(viewport, sidebarPreference, detailsSession === undefined ? 0 : panels.details)
+  const cols = computeColumns(viewport, mobile ? 'absent' : sidebarPreference, detailsSession === undefined ? 0 : panels.details)
   const colsRef = useRef(cols)
   colsRef.current = cols
 
@@ -179,21 +186,26 @@ export function AppFrame({
       style={{ gridTemplateColumns: `${cols.sidebar}px minmax(0, 1fr) ${cols.details}px` }}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
       data-details-collapsed={cols.details === 0 || undefined}
+      data-mobile={mobile || undefined}
       data-dragging={dragging || undefined}
     >
       <DocumentTitle
         productTitle={productTitle}
         {...documentTitle === undefined ? {} : { title: documentTitle }}
       />
+      {/* The sidebar column stays a grid item in every layout, even at a zero
+          mobile track: the three occupants are auto-placed in DOM order, so
+          dropping this element would shift the center and details columns one
+          track left. On mobile it is deliberately empty: the occupant renders
+          its header inside the center column and its panel in the overlay
+          layer, so the conversation owns the full frame width at rest. */}
       <div className={css.sidebarCol}>
-        {/* Render-site slot call with live concession output: a closed
-            sidebar keeps the mounted slot at the compact-rail width, and the
-            component sees its rendered state as owner params decided here
-            (collapsed follows the resolved rail, so a derived auto-collapse
-            renders the rail UI too). */}
-        {renderSlot('sidebar', {
+        {!mobile && renderSlot('sidebar', {
           collapsed: sidebarCollapsed,
           width: cols.sidebar,
+          mobile: false,
+          mobileOpen: false,
+          surface: 'column',
         })}
       </div>
       <>
@@ -202,16 +214,38 @@ export function AppFrame({
             the shell's own pending rendering. The conversation
             is session-maybe; SessionProvider withholds the strict details
             entry while no session is current. */}
-        <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
+        <CenterColumn>
+          {mobile && renderSlot('sidebar', {
+            collapsed: true,
+            width: 0,
+            mobile: true,
+            mobileOpen: panels.mobileOpen,
+            surface: 'header',
+          })}
+          {renderSlot('conversation', {})}
+        </CenterColumn>
         <DetailsColumn>
           <SessionProvider>{renderSlot('details', {})}</SessionProvider>
         </DetailsColumn>
       </>
       <div className={css.overlayLayer} data-shell-overlay>
+        {/* The mobile panel and its scrim belong above every column and
+            outside their clipping: the overlay layer is the frame's only
+            stacking context for that (z-index 20, click-through until an
+            entry opts in). Rendering them inside the center column left them
+            at `z-index: auto` under the conversation. */}
+        {mobile && panels.mobileOpen && renderSlot('sidebar', {
+          collapsed: false,
+          width: 0,
+          mobile: true,
+          mobileOpen: true,
+          surface: 'panel',
+        })}
         {renderSlot('shell.overlay', {})}
       </div>
-      {/* The collapsed rail is fixed-width: no resize handle while closed. */}
-      {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
+      {/* The collapsed rail is fixed-width, and mobile has no sidebar column:
+          no resize handle in either case (drag-resize is meaningless on touch). */}
+      {!mobile && !sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
       {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
     </div>
   )

@@ -254,7 +254,7 @@ describe('AppFrame', () => {
 
   it('sidebar slot receives live concession output as owner props', () => {
     const { slotCalls } = mountFrame()
-    expect(slotCalls.find(c => c.key === 'sidebar')!.props).toEqual({ collapsed: false, width: 280 })
+    expect(slotCalls.find(c => c.key === 'sidebar')!.props).toEqual({ collapsed: false, width: 280, mobile: false, mobileOpen: false, surface: 'column' })
   })
 
   it('sidebar drag widens through rAF-batched pointer moves', () => {
@@ -296,7 +296,7 @@ describe('AppFrame', () => {
     expect(getByTestId('sidebar-content')).toBeTruthy()
     expect(frame.hasAttribute('data-sidebar-collapsed')).toBe(true)
     const lastSidebarCall = slotCalls.filter(c => c.key === 'sidebar').at(-1)!
-    expect(lastSidebarCall.props).toEqual({ collapsed: true, width: SIDEBAR_COLLAPSED })
+    expect(lastSidebarCall.props).toEqual({ collapsed: true, width: SIDEBAR_COLLAPSED, mobile: false, mobileOpen: false, surface: 'column' })
   })
 
   it('viewport shrink triggers the concession chain via ResizeObserver', () => {
@@ -328,7 +328,7 @@ describe('AppFrame — narrow-viewport auto-collapse', () => {
     const { frame, slotCalls } = mountFrame()
     expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
     expect(frame.hasAttribute('data-sidebar-collapsed')).toBe(true)
-    expect(slotCalls.filter(c => c.key === 'sidebar').at(-1)!.props).toEqual({ collapsed: true, width: SIDEBAR_COLLAPSED })
+    expect(slotCalls.filter(c => c.key === 'sidebar').at(-1)!.props).toEqual({ collapsed: true, width: SIDEBAR_COLLAPSED, mobile: false, mobileOpen: false, surface: 'column' })
     expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
   })
 
@@ -432,5 +432,65 @@ describe('AppFrame — unmount with an in-flight resize frame', () => {
     frameWidth = 1250
     act(() => { fireResize?.(); fireResize?.(); vi.advanceTimersByTime(20) })
     expect(tracks(frame)).toEqual([280, 330])
+  })
+})
+
+describe('AppFrame — mobile header layout', () => {
+  it('drops the sidebar column entirely below the mobile breakpoint', () => {
+    frameWidth = 600
+    const { frame, slotCalls } = mountFrame()
+    // No sidebar track at all: the conversation owns the full frame width.
+    expect(tracks(frame)).toEqual([0, 0])
+    expect(frame.hasAttribute('data-mobile')).toBe(true)
+    expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
+    const sidebar = slotCalls.filter(c => c.key === 'sidebar')
+    expect(sidebar.at(-1)!.props).toEqual({ collapsed: true, width: 0, mobile: true, mobileOpen: false, surface: 'header' })
+  })
+
+  it('toggling on mobile opens the transient panel instead of a column', () => {
+    frameWidth = 600
+    const { frame, instance, slotCalls } = mountFrame()
+    act(() => { instance.actions.toggleSidebar() })
+    // The overlay opens without the sidebar reclaiming any track.
+    expect(tracks(frame)).toEqual([0, 0])
+    expect(slotCalls.filter(c => c.key === 'sidebar').at(-1)!.props).toMatchObject({ mobile: true, mobileOpen: true })
+    act(() => { instance.actions.closeMobileSidebar() })
+    expect(slotCalls.filter(c => c.key === 'sidebar').at(-1)!.props).toMatchObject({ mobileOpen: false })
+  })
+
+  it('crossing back to a wide viewport restores the column and drops the overlay', () => {
+    frameWidth = 600
+    const { frame, instance, slotCalls } = mountFrame()
+    act(() => { instance.actions.toggleSidebar() })
+    expect(instance.store.getSnapshot().mobileOpen).toBe(true)
+    frameWidth = 1400
+    act(() => { fireResize?.(); vi.advanceTimersByTime(20) })
+    // The overlay request must not survive into the column layout.
+    expect(instance.store.getSnapshot().mobileOpen).toBe(false)
+    expect(frame.hasAttribute('data-mobile')).toBe(false)
+    expect(tracks(frame)).toEqual([280, 0])
+    expect(slotCalls.filter(c => c.key === 'sidebar').at(-1)!.props).toMatchObject({ mobile: false })
+  })
+})
+
+describe('AppFrame — grid item positions are load-bearing', () => {
+  it('keeps the conversation in the middle grid item on mobile', () => {
+    // Columns are auto-placed in DOM order. Dropping the sidebar element on
+    // mobile shifted the center into the sidebar's zero track and the details
+    // panel into the visible one: a blank conversation behind a stuck Details
+    // panel. The sidebar column stays mounted (empty) to hold the position.
+    frameWidth = 600
+    const { frame } = mountFrame()
+    expect(frame.children[0]!.querySelector('[data-testid="sidebar-content"]')).toBeNull()
+    expect(frame.children[1]!.querySelector('[data-testid="center-content"]')).not.toBeNull()
+    expect(frame.children[2]!.querySelector('[data-testid="details-content"]')).not.toBeNull()
+  })
+
+  it('keeps the same grid item order on a wide viewport', () => {
+    frameWidth = 1400
+    const { frame } = mountFrame()
+    expect(frame.children[0]!.querySelector('[data-testid="sidebar-content"]')).not.toBeNull()
+    expect(frame.children[1]!.querySelector('[data-testid="center-content"]')).not.toBeNull()
+    expect(frame.children[2]!.querySelector('[data-testid="details-content"]')).not.toBeNull()
   })
 })

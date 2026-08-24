@@ -22,6 +22,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SidebarRootComponentProps } from './contract/slots.ts'
 import css from './SidebarRoot.module.css'
+import mobileCss from './MobileHeader.module.css'
 
 /** Wide-content unmount delay; matches the 150ms wide-content fade-out. */
 const COLLAPSE_SETTLE_MS = 150
@@ -52,20 +53,24 @@ function localBuildVersion(): string | undefined {
 export function SidebarRoot({
   collapsed,
   width,
+  mobile,
+  surface,
   startSession,
   toggleSidebar,
+  closeMobileSidebar,
   t,
   renderSlot,
 }: SidebarRootComponentProps) {
   // Wide content stays mounted while the collapse animates (fading via
   // .collapsed .wide), unmounts at settle, and remounts right away on expand.
+  // The mobile panel has no rail state: it is either absent or fully wide.
   const [settled, setSettled] = useState(collapsed)
   useEffect(() => {
     if (!collapsed) { setSettled(false); return }
     const timer = window.setTimeout(() => { setSettled(true) }, COLLAPSE_SETTLE_MS)
     return () => { window.clearTimeout(timer) }
   }, [collapsed])
-  const wide = !collapsed || !settled
+  const wide = mobile || !collapsed || !settled
 
   // Freeze the content at its expanded width while it fades out (collapsed
   // && wide): the sliding column then clips it instead of reflowing it. The
@@ -123,21 +128,13 @@ export function SidebarRoot({
 
   const buildVersion = localBuildVersion()
 
-  return (
-    <div
-      ref={column}
-      className={clsx(
-        css.root, !wide && css.collapsed, !wide && everWide.current && css.railIn,
-        collapsed && wide && css.fading, !pointerInside && css.quietBars,
-      )}
-      style={wide ? { width: collapsed ? lastWideWidth.current : width } : undefined}
-      onPointerEnter={() => {
-        cancelLinger()
-        setPointerInside(true)
-      }}
-      onPointerLeave={() => { armLinger() }}
-    >
-      <div className={css.logoRow}>
+  // The column body is identical in both layouts: the mobile panel is the
+  // same wide sidebar, placed in the frame's overlay layer instead of a grid
+  // track. Only the surrounding chrome differs, since the mobile header
+  // already carries the brand and New Session, so the panel omits that row.
+  const body = (
+    <>
+      {!mobile && <div className={css.logoRow}>
         {/* Expanded, the brand doubles as a New Session shortcut; the
             collapsed rail's logo is the expand toggle below instead. */}
         {wide && (
@@ -184,10 +181,11 @@ export function SidebarRoot({
             <IconPanelLeftOutline16 className={css.panelIcon} size={wide ? 16 : 18} />
           </button>
         </Tooltip>
-      </div>
+      </div>}
 
-      {/* Expanded, the button carries its own label — tooltip only on the rail. */}
-      <Tooltip label={t('session.new.label')} delayMs={500} disabled={wide}>
+      {/* Expanded, the button carries its own label — tooltip only on the rail.
+          The mobile header owns this control, so the panel omits it. */}
+      {!mobile && <Tooltip label={t('session.new.label')} delayMs={500} disabled={wide}>
         <button
           type="button"
           className={css.newSession}
@@ -197,7 +195,7 @@ export function SidebarRoot({
           <IconNewChatOutline16 size={wide ? 14 : 18} />
           {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
         </button>
-      </Tooltip>
+      </Tooltip>}
 
       {/* The browsing region fills the column between the controls and the
           foot in both states; its rail icon column rides the same slot. */}
@@ -217,6 +215,77 @@ export function SidebarRoot({
           {renderSlot('sidebar.settings', { wide })}
         </div>
       </div>
+    </>
+  )
+
+  // Mobile: no grid track at all. A 48px header keeps the two controls the
+  // conversation needs within thumb reach, and the sidebar proper opens as a
+  // transient panel over the conversation, dismissed by the scrim.
+  // Mobile renders at two sites. The panel site sits in the frame's overlay
+  // layer so the scrim and panel stack above the columns and take pointer
+  // events; the header site stays in the center column.
+  if (mobile && surface === 'panel') {
+    return (
+      <>
+        <button
+          type="button"
+          className={mobileCss.scrim}
+          aria-label={t('toggle.collapse')}
+          onClick={() => { closeMobileSidebar() }}
+        />
+        <div className={clsx(css.root, mobileCss.panel)} ref={column}>
+          {body}
+        </div>
+      </>
+    )
+  }
+
+  if (mobile) {
+    return (
+      <header className={mobileCss.header}>
+        <button
+          type="button"
+          className={mobileCss.iconButton}
+          aria-label={t('toggle.open')}
+          onClick={() => { toggleSidebar() }}
+        >
+          <IconPanelLeftOutline16 size={18} />
+        </button>
+        <span className={mobileCss.brand}>
+          <span className={mobileCss.brandMark} aria-hidden="true">
+            {renderSlot('sidebar.brand.mark', { size: 20 }, { fallback: <FishLogo size={20} /> })}
+          </span>
+          <span className={mobileCss.brandName}>
+            {renderSlot('sidebar.brand.name', {}, { fallback: <>DSH</> })}
+          </span>
+        </span>
+        <button
+          type="button"
+          className={mobileCss.iconButton}
+          aria-label={t('session.new.label')}
+          onClick={() => { startSession() }}
+        >
+          <IconNewChatOutline16 size={18} />
+        </button>
+      </header>
+    )
+  }
+
+  return (
+    <div
+      ref={column}
+      className={clsx(
+        css.root, !wide && css.collapsed, !wide && everWide.current && css.railIn,
+        collapsed && wide && css.fading, !pointerInside && css.quietBars,
+      )}
+      style={wide ? { width: collapsed ? lastWideWidth.current : width } : undefined}
+      onPointerEnter={() => {
+        cancelLinger()
+        setPointerInside(true)
+      }}
+      onPointerLeave={() => { armLinger() }}
+    >
+      {body}
     </div>
   )
 }

@@ -10,7 +10,9 @@
  * SIDEBAR_COLLAPSED control rail while closed details resolve to zero width.
  * The SIDEBAR_AUTO_COLLAPSE breakpoint is consumed by AppFrame, which decides
  * the effective sidebar preference before solving; the solver itself stays
- * breakpoint-free.
+ * breakpoint-free. Passing `'absent'` as the sidebar preference is the mobile
+ * signal: the column leaves the grid, so it resolves to a zero track rather
+ * than the collapsed rail.
  */
 
 /** Resolved widths for one frame; center may drop below CENTER_MIN only at the final fallback. */
@@ -31,6 +33,15 @@ export const SIDEBAR_COLLAPSED = 56
  * LG breakpoint); a manual toggle below it re-expands over the squeezed center
  * (stores.ts narrowExpanded). */
 export const SIDEBAR_AUTO_COLLAPSE = 1024
+/**
+ * Viewport width below which the shell switches to the mobile header layout:
+ * the sidebar leaves the grid entirely (zero track — not even the rail) and
+ * its controls move into a top header, because at these widths the 56px rail
+ * costs more of the conversation than it returns. Below it a sidebar request
+ * renders as a temporary overlay panel over the conversation instead of a
+ * column, so the center keeps the full frame width at rest.
+ */
+export const MOBILE_HEADER = 720
 /** Details drag clamp floor. */
 export const DETAILS_MIN = 300
 /** Details drag clamp ceiling. */
@@ -50,18 +61,28 @@ export function clampWidth(px: number, min: number, max: number): number {
 }
 
 /**
+ * Sidebar width preference: px (0 = closed, resolving to the compact rail) or
+ * `'absent'` when the mobile header owns the sidebar controls and the column
+ * must not occupy a grid track at all.
+ */
+export type SidebarPreference = number | 'absent'
+
+/**
  * Solve the three column widths for one viewport frame. Pure: no hysteresis —
  * the output is a function of (viewport, preferences) only, so recovery on
  * re-widening is automatic. Preferences re-clamp here because they cross the
  * store boundary and callers may still supply stale ranges.
  * @param viewport - available frame width in px.
- * @param sidebar - sidebar width preference in px (0 = closed).
+ * @param sidebar - sidebar width preference (0 = closed rail, 'absent' = no column).
  * @param details - details width preference in px (0 = closed).
- * @returns resolved widths; details 0 means visually closed (never unmounted), while a closed sidebar keeps its compact rail.
+ * @returns resolved widths; details 0 means visually closed (never unmounted). A closed sidebar keeps its rail unless it is 'absent'.
  */
-export function computeColumns(viewport: number, sidebar: number, details: number): Columns {
+export function computeColumns(viewport: number, sidebar: SidebarPreference, details: number): Columns {
   // The sidebar is fixed at its preference (or the rail) — it never concedes.
-  const s = sidebar === 0 ? SIDEBAR_COLLAPSED : clampWidth(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
+  // 'absent' removes the track outright: the mobile header carries its controls.
+  const s = sidebar === 'absent'
+    ? 0
+    : sidebar === 0 ? SIDEBAR_COLLAPSED : clampWidth(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
   const d0 = details === 0 ? 0 : clampWidth(details, DETAILS_MIN, DETAILS_MAX)
 
   // Step 1: everything fits at preferred widths.

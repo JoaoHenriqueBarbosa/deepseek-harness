@@ -97,8 +97,24 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 export interface SidebarOwnerProps {
   /** True when the sidebar is closed (the column renders the compact control rail). */
   collapsed: boolean
-  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */
+  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed, 0 on mobile). */
   width: number
+  /**
+   * True below the MOBILE_HEADER breakpoint, where the sidebar owns no grid
+   * track: the occupant renders a header row in place of the column and puts
+   * its browsing panel in the frame's overlay layer.
+   */
+  mobile: boolean
+  /** Whether the transient mobile panel is currently requested open. */
+  mobileOpen: boolean
+  /**
+   * Which part of the sidebar this render site expects. `column` is the
+   * ordinary grid track. On mobile the occupant renders at two sites:
+   * `header` in the center column, and `panel` inside the frame's overlay
+   * layer — the only stacking context above the columns and outside their
+   * clipping, so the panel and its scrim receive pointer events.
+   */
+  surface: 'column' | 'header' | 'panel'
 }
 
 /** Conversation owner share: business state and actions belong to the registrant. */

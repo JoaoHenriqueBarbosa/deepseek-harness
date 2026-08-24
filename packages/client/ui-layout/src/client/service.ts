@@ -23,6 +23,11 @@ export type PanelActions = BoundActions<ReturnType<typeof createLayoutStore>>
 export interface ILayout {
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void
+  /**
+   * Dismiss the transient mobile sidebar panel. No-op above the mobile
+   * breakpoint, where the sidebar is a column rather than an overlay.
+   */
+  closeMobileSidebar(): void
   /** Open the details panel (no-op when already open). */
   openDetails(): void
   /** Close the details panel. */
@@ -47,6 +52,14 @@ export class LayoutController implements ILayout {
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void {
     this.#require().toggleSidebar()
+  }
+
+  /**
+   * Dismiss the transient mobile sidebar panel. No-op above the mobile
+   * breakpoint, where the sidebar is a column rather than an overlay.
+   */
+  closeMobileSidebar(): void {
+    this.#require().closeMobileSidebar()
   }
 
   /** Open the details panel (no-op when already open). */

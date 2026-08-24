@@ -40,11 +40,27 @@ export function apply(ctx: ClientContext): void {
   const workspaceNavigation = ctx.get('uiWorkspace') as unknown as WorkspaceNavigation
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sidebar: dictionaries')
 
+  // Opening a session from the mobile panel is a navigation: the panel covers
+  // the conversation it just switched to, so a changed current session
+  // dismisses it. Watching the selection here keeps the browsing region's slot
+  // contract unchanged (it needs no selection callback) and keeps the shell
+  // component free of business subscriptions.
+  ctx.effect(() => {
+    let last = ctx.sessions.list.getSnapshot().current
+    return ctx.sessions.list.subscribe(() => {
+      const next = ctx.sessions.list.getSnapshot().current
+      if (next === last) return
+      last = next
+      ctx.layout.closeMobileSidebar()
+    })
+  }, 'ui-sidebar: dismiss mobile panel on navigation')
+
   const injectProps = (): SidebarRootInjected => ({
     // The shell's New Session button rides the Workspace UI's shared action
     // (current Session Workspace, then recent Workspace).
     startSession: (workspaceId) => { workspaceNavigation.startSession(workspaceId) },
     toggleSidebar: () => { ctx.layout.toggleSidebar() },
+    closeMobileSidebar: () => { ctx.layout.closeMobileSidebar() },
   })
   ctx.effect(
     () => ctx.slots.register({

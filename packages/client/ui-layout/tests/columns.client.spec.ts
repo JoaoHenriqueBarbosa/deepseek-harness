@@ -93,3 +93,16 @@ describe('computeColumns — degenerate viewports', () => {
       .toEqual({ sidebar: SIDEBAR_COLLAPSED, center: 500 - SIDEBAR_COLLAPSED, details: 0 })
   })
 })
+
+describe('computeColumns — absent sidebar (mobile header)', () => {
+  it('gives the whole frame to the center when the sidebar owns no track', () => {
+    // Not the 56px rail: 'absent' means the column left the grid entirely.
+    expect(computeColumns(390, 'absent', 0)).toEqual({ sidebar: 0, center: 390, details: 0 })
+  })
+
+  it('keeps the details concession chain intact without a sidebar', () => {
+    expect(computeColumns(1000, 'absent', DETAILS_DEFAULT)).toEqual({
+      sidebar: 0, center: 640, details: 360,
+    })
+  })
+})

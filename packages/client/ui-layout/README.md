@@ -11,6 +11,8 @@ English | [中文](README.zh.md)
 
 This package provides the shell layout of the Web GUI: a three-column AppFrame with resizable sidebar and details panels, a concession chain that shrinks the details column and then auto-closes it when space runs out, and the `ctx.layout` panel-geometry service other plugins call to open or close the details column. It also seats the theme presenter, which projects the resolved color scheme, alias tokens, content font size, and `theme-color` metadata onto the document. Choose it for the standard window chrome; panel geometry is transient and resets on reload.
 
+Below 720px viewport width the sidebar leaves the grid entirely: the frame solves a zero sidebar track, sets `data-mobile`, renders no sidebar drag handle, and the occupant renders a header row plus a transient overlay panel. `toggleSidebar` picks its semantics from the viewport the store mirrors: above 1024px it flips the width preference, below it flips the narrow re-expand override, and below 720px it flips the transient `mobileOpen` request so the panel never costs the conversation width. `closeMobileSidebar` dismisses that panel alone, leaving every width preference untouched, and crossing either breakpoint drops the corresponding override so a restored column layout never inherits a stale overlay.
+
 ## Table of Contents
 
 - [Use this package](#use-this-package)

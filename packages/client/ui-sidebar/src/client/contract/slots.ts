@@ -99,6 +99,11 @@ export type SidebarRootInjected = {
   startSession: (workspaceId?: WorkspaceId) => void
   /** Toggle the sidebar column through the layout service. */
   toggleSidebar: () => void
+  /**
+   * Dismiss the transient mobile panel without touching the width preference.
+   * Used by the scrim and after the panel's own navigation.
+   */
+  closeMobileSidebar: () => void
 }
 
 /**

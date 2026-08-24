@@ -12,6 +12,8 @@ async function bench(declare = true) {
   await ctx.plugin(SlotRegistry).await()
   const layout = { toggleSidebar: vi.fn() }
   const uiWorkspace = { startSession: vi.fn() }
+  const layout = { toggleSidebar: vi.fn(), closeMobileSidebar: vi.fn() }
+  // The plugin subscribes to the current selection to dismiss the mobile
   ctx.provide('layout', layout)
   ctx.provide('uiWorkspace', uiWorkspace as never)
   ctx.provide('locale', new LocaleRuntime(ctx))
@@ -48,12 +50,35 @@ describe('ui-sidebar apply', () => {
     const injected = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
     expect(Object.keys(injected)).toEqual(['startSession', 'toggleSidebar'])
     // Both arms delegate to the Workspace UI's shared New Session action.
+    expect(Object.keys(injected)).toEqual(['startSession', 'toggleSidebar', 'closeMobileSidebar'])
     injected.startSession('workspace' as never)
     expect(b.uiWorkspace.startSession).toHaveBeenCalledWith('workspace')
     injected.startSession()
     expect(b.uiWorkspace.startSession).toHaveBeenLastCalledWith(undefined)
     injected.toggleSidebar()
     expect(b.layout.toggleSidebar).toHaveBeenCalledOnce()
+    injected.closeMobileSidebar()
+    expect(b.layout.closeMobileSidebar).toHaveBeenCalledOnce()
+  })
+
+  it('dismisses the mobile panel when the current session changes', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    b.selectSession('session-a')
+    expect(b.layout.closeMobileSidebar).toHaveBeenCalledOnce()
+    // A notification that leaves the selection untouched is not a navigation.
+    b.selectSession('session-a')
+    expect(b.layout.closeMobileSidebar).toHaveBeenCalledOnce()
+    b.selectSession('session-b')
+    expect(b.layout.closeMobileSidebar).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops watching the selection on teardown', async () => {
+    const b = await bench()
+    const fiber = b.ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+    await fiber.dispose()
+    expect(b.listeners.size).toBe(0)
   })
 
   it('fails when no live owner declared the sidebar slot', async () => {

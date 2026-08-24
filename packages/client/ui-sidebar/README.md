@@ -11,6 +11,8 @@ English | [中文](README.zh.md)
 
 `dsh-client-ui-sidebar` is the sidebar shell of the dsh web client: users see the brand row, start new sessions, collapse into the layout-owned 56px rail, and reach Settings from the bottom-pinned seat, while the scroll-aware region seat hosts the Workspace and Session browser. The Workspace and Session browser rendered into `sidebar.workspaces` belongs to ui-workspace; this package neither derives its rows nor owns its view preferences. A deployment package can replace the brand mark or name without replacing the New Session control or the rail geometry, and New Session starts the runtime's page-local frontend Session Intent against the explicit, current, or most recently active Workspace. Collapse into the layout-owned 56px rail remains presentation-local.
 
+Below the layout's 720px mobile breakpoint the shell owns no column at all: the rail's fixed width costs more than the conversation and its composer can spare, so the shell renders a 48px header carrying the sidebar toggle, the brand slots, and New Session, each in a 36px touch target. The browsing region mounts only while the panel is open, as a bounded `min(320px, 85vw)` overlay behind a scrim in the frame's overlay layer; it always renders wide, and the header's controls are omitted from it rather than duplicated. Dismissal comes from the scrim, the toggle, or a completed navigation: the plugin watches the current-session selection in its apply world and calls `closeMobileSidebar`, which keeps the browsing region's slot contract free of a selection callback and the shell component free of business subscriptions.
+
 ## Table of Contents
 
 - [Use this package](#use-this-package)

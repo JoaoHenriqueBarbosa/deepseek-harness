@@ -1,0 +1,108 @@
+/* Mobile header: the sidebar's replacement below MOBILE_HEADER. The sidebar
+   column costs a permanent 56px rail there, which is width the conversation
+   and its composer need more; the controls move onto a 48px header row
+   instead, and the sidebar itself becomes a transient overlay panel. */
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  background: var(--dsw-specific-sidebar-fill);
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  color: var(--dsw-alias-label-primary);
+}
+
+.iconButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 36px keeps the touch target at the platform minimum on a phone. */
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* The brand sits between the two controls and yields first: a long session
+   title must never push either button off the row. */
+.brand {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.brandMark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.brandName {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* The transient sidebar panel and its scrim live in the frame's overlay
+   layer, which is click-through by default — both opt back in. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  border: none;
+  padding: 0;
+  background: var(--dsw-alias-bg-mask-1);
+  animation: scrim-in 150ms var(--ds-ease-in-out);
+}
+
+/* Composed with the column's own .root: that supplies the flex stack, padding
+   and sidebar fill, so these rules only place the panel and bound its width. */
+.panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  /* Bounded so the conversation stays visible behind the panel: the scrim is
+     the dismiss affordance, and a full-bleed panel would hide it. */
+  width: min(320px, 85vw);
+  height: 100%;
+  box-sizing: border-box;
+  border-right: 1px solid var(--dsw-alias-border-l1);
+  box-shadow: var(--dsw-shadow-lv3);
+  animation: panel-in 200ms var(--ds-ease-in-out);
+}
+
+@keyframes scrim-in {
+  from { opacity: 0; }
+}
+
+@keyframes panel-in {
+  from { transform: translateX(-100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  .panel {
+    animation: none;
+  }
+}

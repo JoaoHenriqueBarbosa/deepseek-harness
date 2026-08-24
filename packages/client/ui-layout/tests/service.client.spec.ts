@@ -8,6 +8,8 @@ function fakePanels(): PanelActions {
     setDetails: vi.fn(),
     toggleSidebar: vi.fn(),
     setNarrow: vi.fn(),
+    setMobile: vi.fn(),
+    closeMobileSidebar: vi.fn(),
     openDetails: vi.fn(),
     closeDetails: vi.fn(),
   }

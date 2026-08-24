@@ -305,6 +305,14 @@
     - id: ui-trajectory
       name: '@deepseek-ai/dsh-client-ui-trajectory'
 
+    # Persistence demonstration, kept as a worked example and shipped disabled:
+    # a client plugin package promoted from a dynamic Cordis package, proving
+    # that a bundled entry returns after a restart while a dynamic one does
+    # not. Flip `disabled` to play the game in the composer dock.
+    - id: ui-demo-badge
+      name: '@deepseek-ai/dsh-client-ui-demo-badge'
+      disabled: true
+
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #
 # Every row below composes what ONE agent contributes to the host registries:

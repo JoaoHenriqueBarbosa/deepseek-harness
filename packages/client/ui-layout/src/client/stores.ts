@@ -19,8 +19,18 @@ import {
  * (viewport < SIDEBAR_AUTO_COLLAPSE) so toggleSidebar can pick semantics, and
  * `narrowExpanded` is the manual override that re-expands the auto-collapsed
  * sidebar over the squeezed center without rewriting the width preference.
+ * The mobile pair works the same way one breakpoint down: `mobile` mirrors
+ * viewport < MOBILE_HEADER, where the sidebar leaves the grid for a header,
+ * and `mobileOpen` is the transient overlay-panel request.
  */
-type LayoutState = { sidebar: number; details: number; narrow: boolean; narrowExpanded: boolean }
+type LayoutState = {
+  sidebar: number
+  details: number
+  narrow: boolean
+  narrowExpanded: boolean
+  mobile: boolean
+  mobileOpen: boolean
+}
 
 /**
  * Annotation twin of the actions literal below (the export needs a declared
@@ -31,6 +41,8 @@ type LayoutActions = {
   setDetails: (draft: LayoutState, px: number) => void
   toggleSidebar: (draft: LayoutState) => void
   setNarrow: (draft: LayoutState, narrow: boolean) => void
+  setMobile: (draft: LayoutState, mobile: boolean) => void
+  closeMobileSidebar: (draft: LayoutState) => void
   openDetails: (draft: LayoutState) => void
   closeDetails: (draft: LayoutState) => void
 }
@@ -42,19 +54,29 @@ type LayoutActions = {
  * into the panel's contract range and never cross the open/closed line;
  * open/close transitions write 0 / the default explicitly. Below the
  * auto-collapse breakpoint (AppFrame feeds setNarrow) the sidebar toggle
- * flips the narrowExpanded override instead of the preference.
+ * flips the narrowExpanded override instead of the preference; below the
+ * mobile breakpoint (setMobile) it flips the transient overlay request.
  * @returns the store handle (spec + type + identity + factory in one).
  */
 export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutActions>  {
   const handle = defineStore({
-    init: (): LayoutState => ({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false }),
+    init: (): LayoutState => ({
+      sidebar: SIDEBAR_DEFAULT,
+      details: 0,
+      narrow: false,
+      narrowExpanded: false,
+      mobile: false,
+      mobileOpen: false,
+    }),
     actions: {
       setSidebar: (d, px: number) => { d.sidebar = clampWidth(px, SIDEBAR_MIN, SIDEBAR_MAX) },
       setDetails: (d, px: number) => { d.details = clampWidth(px, DETAILS_MIN, DETAILS_MAX) },
       // Narrow toggles flip only the override: the width preference survives
-      // untouched, so re-widening restores the pre-squeeze layout.
+      // untouched, so re-widening restores the pre-squeeze layout. On mobile
+      // the sidebar is not a column at all, so the toggle drives the overlay.
       toggleSidebar: (d) => {
-        if (d.narrow) d.narrowExpanded = !d.narrowExpanded
+        if (d.mobile) d.mobileOpen = !d.mobileOpen
+        else if (d.narrow) d.narrowExpanded = !d.narrowExpanded
         else d.sidebar = d.sidebar === 0 ? SIDEBAR_DEFAULT : 0
       },
       // Crossing the breakpoint in either direction drops the override: the
@@ -64,6 +86,16 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
         d.narrow = narrow
         d.narrowExpanded = false
       },
+      // Leaving mobile must not strand the overlay open over a restored
+      // column layout; entering it starts closed for a full-width center.
+      setMobile: (d, mobile: boolean) => {
+        if (d.mobile === mobile) return
+        d.mobile = mobile
+        d.mobileOpen = false
+      },
+      // Picking a session (or tapping the scrim) dismisses the transient
+      // panel; it never touches the width preference.
+      closeMobileSidebar: (d) => { d.mobileOpen = false },
       openDetails: (d) => { if (d.details === 0) d.details = DETAILS_DEFAULT },
       closeDetails: (d) => { d.details = 0 },
     },
