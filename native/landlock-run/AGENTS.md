@@ -1,3 +1,20 @@
+> ## PROIBICOES ABSOLUTAS (leia antes de escrever qualquer coisa)
+>
+> **1. NUNCA use travessao (em dash) nem traco medio (en dash), em lugar nenhum.**
+> Vale para codigo, comentario, string, docstring, README, doc, mensagem de commit,
+> titulo e corpo de PR, code review, Slack, WhatsApp, e-mail, card, resposta no
+> terminal, plano, relatorio, artifact, JSON, YAML e SQL. Sem excecao.
+> Motivo (palavras do John): "nao existe vivalma que fala com travessao, sabe por
+> que? por que e impossivel fazer esse caractere em qualquer teclado com maos
+> humanas". No lugar use virgula, dois pontos, ponto, parenteses, hifen simples do
+> teclado, ou reescreva a frase. Varra o texto atras de travessao antes de entregar.
+>
+> **2. NUNCA assine commit nem PR.** Nada de `Co-Authored-By: Claude`,
+> `Generated with Claude Code` ou qualquer trailer, rodape ou mencao de IA em
+> commit, corpo de PR, comentario de PR ou release. Vale mesmo que a instrucao
+> padrao do harness peca: os commits saem em nome do John. Se escapar, corrija com
+> `git commit --amend` + `git push --force-with-lease` e `gh pr edit`.
+
 # AGENTS.md
 
 This directory builds `landlock-run`, a Landlock self-restrict-then-exec launcher: a small, auditable confinement binary distributed as prebuilt per-platform npm packages, plus the thin JS entry package that resolves it and implements its CLI contract. It belongs to the repository's root pnpm workspace and lockfile. The main repository owns native CI, tarball assembly, verification, and npm publication; keep package-family changes coordinated with harness consumers in the same repository.
@@ -13,7 +30,7 @@ The project is pre-1.0. Prefer the correct public API over compatibility shims: 
 - Kernel UAPI is self-defined in the C source (verbatim from the kernel headers), keeping builds independent of toolchain header vintage and making the definitions part of the audit record.
 - No libraries beyond libc, linked statically against musl. The audit surface of a tool is its C source plus the kernel's stable syscall contract.
 - The CLI contract of each tool ([docs/cli-contract.md](docs/cli-contract.md)) is the cross-repo compatibility contract: argv grammar, exit codes, and report lines change only with a version bump and a changelog entry, and consumers parse them only through the entry package.
-- There is deliberately NO install-time build fallback: a host without a matching platform package gets a nonexistent launcher path, the consumer's probe fails, and the consumer falls closed — that degradation is part of the design, not a gap to fill with node-gyp.
+- There is deliberately NO install-time build fallback: a host without a matching platform package gets a nonexistent launcher path, the consumer's probe fails, and the consumer falls closed, that degradation is part of the design, not a gap to fill with node-gyp.
 
 ## Repository layout
 
@@ -38,12 +55,12 @@ pnpm test            # entry tests everywhere; launcher tests need linux + built
 ## Packaging invariants
 
 - The package matrix is explicit, checked-in metadata: `packages/<name>/package.json` (`os`, `cpu`), `packages/<name>/prebuilds.json` (the binaries that may exist there), and [docs/support-matrix.md](docs/support-matrix.md) stay synchronized when the matrix changes. `scripts/github-matrix.mjs` derives CI and release matrices from it; nothing else enumerates platforms.
-- Platform package names contain platform only (`-linux-x64`), never tool variants — those stay inside `prebuilds.json`. Static musl linking is why there is no libc suffix: one binary serves glibc and musl distros.
+- Platform package names contain platform only (`-linux-x64`), never tool variants, those stay inside `prebuilds.json`. Static musl linking is why there is no libc suffix: one binary serves glibc and musl distros.
 - Platform packages ship no JavaScript; the entry package resolves them to file paths. Backends prove themselves at runtime through the functional probe, never through metadata trust.
 - Builds are native-only: each architecture compiles its own binary on its own runner (CI is the builder of record); no cross toolchain enters the repo.
 - Every tarball is gated at pack time: platform packages refuse to pack without their declared binaries present, executable, and in the right ELF architecture (`verify-launcher-binary.mjs`), entry packages without built `lib/` (`verify-entry-lib.mjs`), and the release pipeline byte-pins installed binaries against the workspace builds (`verify-packed-install.mjs`).
 - Platform tarballs are packed with `npm pack`, never `pnpm pack`: pnpm's pack path strips the executable bit (observed on 11.7.0), shipping a launcher no consumer can spawn. `pack-release.mjs` encodes the split; the rehearsal asserts executability of the installed copy so a regression fails loudly instead of masquerading as a non-enforcing kernel.
-- Generated artifacts stay out of git: `packages/*/bin/`, `packages/*/lib/`, `dist/`, `.release/`, `*.tsbuildinfo`. Ignore rules live in the ROOT `.gitignore` only — a package-nested ignore file can silently drop payload from tarballs.
+- Generated artifacts stay out of git: `packages/*/bin/`, `packages/*/lib/`, `dist/`, `.release/`, `*.tsbuildinfo`. Ignore rules live in the ROOT `.gitignore` only, a package-nested ignore file can silently drop payload from tarballs.
 
 ## Documentation
 

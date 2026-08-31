@@ -1,4 +1,21 @@
-# AGENTS.md — The documentation standard
+> ## PROIBICOES ABSOLUTAS (leia antes de escrever qualquer coisa)
+>
+> **1. NUNCA use travessao (em dash) nem traco medio (en dash), em lugar nenhum.**
+> Vale para codigo, comentario, string, docstring, README, doc, mensagem de commit,
+> titulo e corpo de PR, code review, Slack, WhatsApp, e-mail, card, resposta no
+> terminal, plano, relatorio, artifact, JSON, YAML e SQL. Sem excecao.
+> Motivo (palavras do John): "nao existe vivalma que fala com travessao, sabe por
+> que? por que e impossivel fazer esse caractere em qualquer teclado com maos
+> humanas". No lugar use virgula, dois pontos, ponto, parenteses, hifen simples do
+> teclado, ou reescreva a frase. Varra o texto atras de travessao antes de entregar.
+>
+> **2. NUNCA assine commit nem PR.** Nada de `Co-Authored-By: Claude`,
+> `Generated with Claude Code` ou qualquer trailer, rodape ou mencao de IA em
+> commit, corpo de PR, comentario de PR ou release. Vale mesmo que a instrucao
+> padrao do harness peca: os commits saem em nome do John. Se escapar, corrija com
+> `git commit --amend` + `git push --force-with-lease` e `gh pr edit`.
+
+# AGENTS.md, The documentation standard
 
 This file defines document structure, Markdown tiers, writing rules, and `verify-doc-budgets` ceilings. Use [dsh-doc](../.agents/skills/dsh-doc/SKILL.md) for placement and validation, and [dsh-prose-standard](../.agents/skills/dsh-prose-standard/SKILL.md) for required coverage and editorial judgment; the [doc-tiers Agent Note](../.agents/notes/implemented/process/2026-07-04-doc-tiers-and-budgets.md) owns rationale.
 
@@ -23,7 +40,7 @@ Each fact has one home: the tier whose job it is; elsewhere, link there.
 | [architecture.md](architecture.md) | Ordered map: composition, core packages, loop, seams, extension points; read before changing `packages/` | Type definitions (→ subsystems), per-package detail (→ package READMEs), decision rationale (→ Agent Notes), implementation-status annotations |
 | [subsystems/](subsystems/README.md) | One reference page per subsystem: type definitions, semantics, and the generated Cordis API | Behavior narration (→ architecture.md) |
 | [Agent Notes](../.agents/notes/README.md) | Active decision records: the why, what-was-given-up, and required verification; `implemented/` notes describe shipped reality in present tense | Migration plans, acceptance-task checklists, fixture walkthroughs, and spec-speak ("should…") once the decision has shipped; archived notes are frozen history, never current authority |
-| [postmortem/](postmortem/README.md) | Incident stories — the only tier where war-story narrative belongs | — |
+| [postmortem/](postmortem/README.md) | Incident stories, the only tier where war-story narrative belongs |, |
 | [cookbook/](cookbook/adding-a-package.md) | Step-by-step how-tos with numbered verify steps | Design rationale (→ the Agent Note each guide links) |
 | [user/](user/index.md) | Product-facing guides published by the documentation website | Generated reference tables, contributor procedures, decision history |
 | Package README | The per-package contract: config, semantics, limitations, extension points, and [Model Experience](cookbook/adding-a-package.md#4-write-the-package-readme) | JSDoc restatement, generated-catalog restatement (event/tool tables), other packages' concerns |
