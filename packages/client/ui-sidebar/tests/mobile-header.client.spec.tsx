@@ -21,6 +21,9 @@ afterEach(() => { cleanup() })
 
 /** The shell reads no global hook; the props share still carries them. */
 const neverHook = (() => { throw new Error('shell must not read global hooks') }) as never
+type AttentionSnapshot = Parameters<Parameters<SidebarRootComponentProps['useSessionPendingInteraction']>[0]>[0]
+const noAttention: AttentionSnapshot = new Map()
+const useSessionPendingInteraction: SidebarRootComponentProps['useSessionPendingInteraction'] = selector => selector(noAttention)
 
 function mountMobile({ surface = 'header' as 'header' | 'panel' } = {}) {
   const startSession = vi.fn()
@@ -31,7 +34,7 @@ function mountMobile({ surface = 'header' as 'header' | 'panel' } = {}) {
     <SidebarRoot
       collapsed={surface !== 'panel'} width={0}
       mobile mobileOpen={surface === 'panel'} surface={surface}
-      useSessions={neverHook} useWorkspaces={neverHook}
+      useSessions={neverHook} useSessionPendingInteraction={useSessionPendingInteraction} useWorkspaces={neverHook}
       startSession={startSession} toggleSidebar={toggleSidebar}
       closeMobileSidebar={closeMobileSidebar} t={t}
       renderSlot={((
